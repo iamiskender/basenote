@@ -35,27 +35,36 @@
     ];
     let signer, contract;
 
+    // Sayfa açıldığında otomatik cüzdan durumunu kontrol et
+    window.onload = async () => {
+        if (window.ethereum && await window.ethereum.request({ method: 'eth_accounts' }).then(a => a.length > 0)) {
+            connectWallet();
+        }
+    };
+
     async function connectWallet() {
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         signer = provider.getSigner();
         contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-        const addr = await signer.getAddress();
-        document.getElementById('walletAddr').textContent = "Bağlı: " + addr;
+        document.getElementById('walletAddr').textContent = "Bağlı: " + accounts[0];
         loadNotes();
     }
 
     async function saveNote() {
         const text = document.getElementById('noteInput').value;
+        if(!text) return alert("Not boş olamaz!");
         const tx = await contract.addNote(text);
         await tx.wait();
+        document.getElementById('noteInput').value = ""; // Kutuyu temizle
         loadNotes();
     }
 
     async function loadNotes() {
         const userAddr = await signer.getAddress();
         const notes = await contract.getNotes(userAddr);
-        document.getElementById('notesList').innerHTML = notes.map(n => 
+        // Notları tarihe göre (yeni en üstte) sırala
+        document.getElementById('notesList').innerHTML = notes.slice().reverse().map(n => 
             `<div class="note-card">${n.text}</div>`
         ).join('');
     }
