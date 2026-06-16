@@ -14,44 +14,44 @@
 <body>
 <div class="wrap">
     <h1>BaseNote</h1>
-    <div id="walletAddr">Bağlı: Bekleniyor...</div>
+    <div id="status">Cüzdan bağlı değil</div>
     <textarea id="noteInput" style="width:100%; height:80px; background:#111; color:white;"></textarea>
     <button onclick="saveNote()">Blockchain'e Kaydet</button>
     <div id="notesList"></div>
 </div>
 
 <script>
-    // 1. Remix'teki adresi buraya yapıştır:
-    const CONTRACT_ADDRESS = "0xC447dA13AF0e252aa28ef8b58ff8440dC6B151e3"; 
-    
+    // Remix'ten bulduğun ADRESİ BURAYA YAZ:
+    const CONTRACT_ADDRESS = "BURAYA_ADRESI_YAPISTIR"; 
     const ABI = [
         "function addNote(string memory _text) public",
         "function getNotes(address _user) public view returns (tuple(string text, uint256 timestamp)[])"
     ];
-    let signer, contract;
-
-    async function init() {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-        document.getElementById('walletAddr').textContent = "Bağlı: " + accounts[0];
-        loadNotes();
-    }
 
     async function saveNote() {
+        if (!window.ethereum) return alert("MetaMask yok");
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+        
         const tx = await contract.addNote(document.getElementById('noteInput').value);
         await tx.wait();
         loadNotes();
     }
 
     async function loadNotes() {
-        const userAddr = await signer.getAddress();
-        const notes = await contract.getNotes(userAddr);
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if(accounts.length === 0) return;
+        
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+        const notes = await contract.getNotes(accounts[0]);
+        
+        document.getElementById('status').textContent = "Bağlı: " + accounts[0];
         document.getElementById('notesList').innerHTML = notes.map(n => `<div class="note-card">${n.text}</div>`).join('');
     }
-
-    init();
+    
+    loadNotes();
 </script>
 </body>
 </html>
