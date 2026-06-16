@@ -28,21 +28,16 @@
 </div>
 
 <script>
-    const CONTRACT_ADDRESS = "0xeC894Bb0Ad54e30690DcAF4C695Eca323b746e05";
+    // NOTLARINI GÖRMEK İÇİN ESKİ ADRESİNİ YAZDIM. YENİSİNİ İSTERSEN DEĞİŞTİR.
+    const CONTRACT_ADDRESS = "0xC447dA13AF0e252aa28ef8b58ff8440dC6B151e3";
     const ABI = [
         "function addNote(string memory _text) public",
         "function getNotes(address _user) public view returns (tuple(string text, uint256 timestamp)[])"
     ];
     let signer, contract;
 
-    // Sayfa açıldığında otomatik cüzdan durumunu kontrol et
-    window.onload = async () => {
-        if (window.ethereum && await window.ethereum.request({ method: 'eth_accounts' }).then(a => a.length > 0)) {
-            connectWallet();
-        }
-    };
-
     async function connectWallet() {
+        if (!window.ethereum) { alert("MetaMask bulunamadı!"); return; }
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         signer = provider.getSigner();
@@ -52,18 +47,19 @@
     }
 
     async function saveNote() {
+        if (!contract) { alert("Önce cüzdanı bağla!"); return; }
         const text = document.getElementById('noteInput').value;
-        if(!text) return alert("Not boş olamaz!");
+        if (!text) return alert("Not boş olamaz!");
         const tx = await contract.addNote(text);
         await tx.wait();
-        document.getElementById('noteInput').value = ""; // Kutuyu temizle
+        document.getElementById('noteInput').value = "";
         loadNotes();
     }
 
     async function loadNotes() {
+        if (!contract) return;
         const userAddr = await signer.getAddress();
         const notes = await contract.getNotes(userAddr);
-        // Notları tarihe göre (yeni en üstte) sırala
         document.getElementById('notesList').innerHTML = notes.slice().reverse().map(n => 
             `<div class="note-card">${n.text}</div>`
         ).join('');
