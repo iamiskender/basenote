@@ -2,42 +2,35 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="talentapp:project_verification" content="d2b378511f24aff0b4198f3e662c047556ee09b9aff791bde989c2bd23c89ef18f96f52ffce2b83675dde22cffd11c50e82eb9831">
-    <title>BaseNote — On-chain Not Defteri</title>
+    <title>BaseNote</title>
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <style>
-        body { background: #0a0a0f; color: #e8e8f0; font-family: sans-serif; padding: 40px 20px; }
+        body { background: #0a0a0f; color: #fff; font-family: sans-serif; padding: 20px; }
         .wrap { max-width: 600px; margin: 0 auto; }
-        .composer, .note-card { background: #111118; border: 1px solid #333; padding: 20px; border-radius: 12px; margin-bottom: 15px; }
-        .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; background: #6c63ff; color: white; margin-top: 10px; }
-        #walletAddr { font-size: 12px; color: #888; margin-bottom: 10px; }
+        .note-card { background: #1a1a24; padding: 15px; border-radius: 8px; margin-top: 10px; border: 1px solid #333; }
     </style>
 </head>
 <body>
 <div class="wrap">
     <h1>BaseNote</h1>
-    <div id="walletAddr">Cüzdan bağlı değil</div>
-    <button class="btn" id="connectBtn" onclick="connectWallet()">Cüzdanı Bağla</button>
-    
-    <div class="composer">
-        <textarea id="noteInput" style="width:100%; height:80px; background:#1a1a24; color:white; border:none; padding:10px; border-radius:8px;" placeholder="Notunu yaz..."></textarea>
-        <button class="btn" onclick="saveNote()">Blockchain'e Kaydet</button>
-    </div>
+    <div id="walletAddr">Bağlı: Bekleniyor...</div>
+    <textarea id="noteInput" style="width:100%; height:80px; background:#111; color:white;"></textarea>
+    <button onclick="saveNote()">Blockchain'e Kaydet</button>
     <div id="notesList"></div>
 </div>
 
 <script>
-    // NOTLARINI GÖRMEK İÇİN ESKİ ADRESİNİ YAZDIM. YENİSİNİ İSTERSEN DEĞİŞTİR.
-    const CONTRACT_ADDRESS = "0xC447dA13AF0e252aa28ef8b58ff8440dC6B151e3";
+    // 1. Remix'teki adresi buraya yapıştır:
+    const CONTRACT_ADDRESS = "0xC447dA13AF0e252aa28ef8b58ff8440dC6B151e3"; 
+    
     const ABI = [
         "function addNote(string memory _text) public",
         "function getNotes(address _user) public view returns (tuple(string text, uint256 timestamp)[])"
     ];
     let signer, contract;
 
-    async function connectWallet() {
-        if (!window.ethereum) { alert("MetaMask bulunamadı!"); return; }
+    async function init() {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         signer = provider.getSigner();
@@ -47,23 +40,18 @@
     }
 
     async function saveNote() {
-        if (!contract) { alert("Önce cüzdanı bağla!"); return; }
-        const text = document.getElementById('noteInput').value;
-        if (!text) return alert("Not boş olamaz!");
-        const tx = await contract.addNote(text);
+        const tx = await contract.addNote(document.getElementById('noteInput').value);
         await tx.wait();
-        document.getElementById('noteInput').value = "";
         loadNotes();
     }
 
     async function loadNotes() {
-        if (!contract) return;
         const userAddr = await signer.getAddress();
         const notes = await contract.getNotes(userAddr);
-        document.getElementById('notesList').innerHTML = notes.slice().reverse().map(n => 
-            `<div class="note-card">${n.text}</div>`
-        ).join('');
+        document.getElementById('notesList').innerHTML = notes.map(n => `<div class="note-card">${n.text}</div>`).join('');
     }
+
+    init();
 </script>
 </body>
 </html>
