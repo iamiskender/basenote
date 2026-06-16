@@ -1,54 +1,574 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="talentapp:project_verification" content="d2b378511f24aff0b4198f3e662c047556ee09b9aff791bde989c2bd23c89ef18f96f52ffce2b83675dde22cffd11c50e82eb9831">
-    <title>BaseNote</title>
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-    <style>
-        body { background: #0a0a0f; color: #fff; font-family: sans-serif; padding: 20px; }
-        .wrap { max-width: 600px; margin: 0 auto; }
-        .note-card { background: #1a1a24; padding: 15px; border-radius: 8px; margin-top: 10px; border: 1px solid #333; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="talentapp:project_verification" content="d2b378511f24aff0b4198f3e662c047556ee09b9aff791bde989c2bd23c89ef18f96f52ffce2b83675dde22cffd11c50e82eb9831">
+<title>BaseNote — On-chain Not Defteri</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #1a1a24;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --accent: #6c63ff;
+    --accent2: #a78bfa;
+    --text: #e8e8f0;
+    --muted: #666680;
+    --muted2: #9898b0;
+    --green: #34d399;
+    --red: #f87171;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    font-size: 15px;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(108,99,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,99,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 48px 20px 80px;
+  }
+
+  .header { margin-bottom: 40px; }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -1px;
+  }
+
+  .logo-text {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+
+  .logo-text span { color: var(--accent2); }
+
+  .tagline {
+    font-size: 13px;
+    color: var(--muted);
+    font-family: var(--mono);
+    letter-spacing: 0.02em;
+  }
+
+  .connect-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    gap: 12px;
+  }
+
+  .wallet-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .status-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  .wallet-addr {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted2);
+  }
+
+  .btn {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #5a52e0; transform: translateY(-1px); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted2);
+    border: 1px solid var(--border2);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent2); }
+
+  .network-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(108,99,255,0.1);
+    color: var(--accent2);
+    border: 1px solid rgba(108,99,255,0.2);
+  }
+
+  .network-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .composer {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 24px;
+    transition: border-color 0.2s;
+  }
+  .composer:focus-within { border-color: rgba(108,99,255,0.4); }
+
+  .composer-label {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    resize: vertical;
+    min-height: 100px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  textarea:focus { border-color: rgba(108,99,255,0.5); }
+  textarea::placeholder { color: var(--muted); }
+
+  .composer-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+  }
+
+  .char-count { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .char-count.warn { color: var(--red); }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 13px;
+    color: var(--text);
+    max-width: 320px;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-left: 3px solid var(--green); }
+  .toast.error { border-left: 3px solid var(--red); }
+
+  .notes-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .notes-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .notes-count { font-family: var(--mono); font-size: 12px; color: var(--accent2); }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--muted);
+    background: var(--bg2);
+    border: 1px dashed var(--border2);
+    border-radius: 16px;
+  }
+
+  .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-text { font-size: 13px; font-family: var(--mono); line-height: 1.6; }
+
+  .note-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 10px;
+    animation: slideIn 0.3s ease;
+    transition: border-color 0.2s;
+  }
+  .note-card:hover { border-color: var(--border2); }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .note-content {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text);
+    margin-bottom: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .note-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .note-time { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .note-index {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--bg3);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .spin {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .contract-info {
+    margin-top: 32px;
+    padding: 14px 16px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .contract-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 3px;
+  }
+
+  .contract-addr { font-family: var(--mono); font-size: 12px; color: var(--accent2); }
+
+  a { color: var(--accent2); text-decoration: none; }
+  a:hover { color: var(--accent); }
+</style>
 </head>
 <body>
 <div class="wrap">
-    <h1>BaseNote</h1>
-    <div id="walletAddr">Bağlı değil</div>
-    <textarea id="noteInput" style="width:100%; height:80px; background:#111; color:white;"></textarea>
-    <button onclick="saveNote()">Blockchain'e Kaydet</button>
-    <div id="notesList"></div>
+
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">Bn</div>
+      <div class="logo-text">Base<span>Note</span></div>
+    </div>
+    <div class="tagline">// on-chain not defteri · base network</div>
+  </div>
+
+  <div class="connect-bar">
+    <div class="wallet-info">
+      <div class="status-dot" id="statusDot"></div>
+      <div class="wallet-addr" id="walletAddr">Cüzdan bağlı değil</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="network-badge" id="networkBadge" style="display:none">Base</div>
+      <button class="btn btn-primary" id="connectBtn" onclick="connectWallet()">Cüzdanı Bağla</button>
+    </div>
+  </div>
+
+  <div class="composer">
+    <div class="composer-label">// yeni not</div>
+    <textarea id="noteInput" placeholder="Notunu yaz... (max 500 karakter)" maxlength="500" oninput="updateCount()" disabled></textarea>
+    <div class="composer-footer">
+      <div class="char-count" id="charCount">0 / 500</div>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveNote()" disabled>Blockchain'e Kaydet</button>
+    </div>
+  </div>
+
+  <div class="notes-header">
+    <div class="notes-title">// notlarım</div>
+    <div class="notes-count" id="notesCount"></div>
+  </div>
+
+  <div id="notesList">
+    <div class="empty-state">
+      <div class="empty-icon">◈</div>
+      <div class="empty-text">Cüzdanını bağla ve<br>ilk notunu kaydet.</div>
+    </div>
+  </div>
+
+  <div class="contract-info">
+    <div>
+      <div class="contract-label">contract adresi</div>
+      <div class="contract-addr">0xeC894Bb0Ad54e30690DcAF4C695Eca323b746e05</div>
+    </div>
+    <a href="https://basescan.org/address/0xeC894Bb0Ad54e30690DcAF4C695Eca323b746e05" target="_blank" class="btn btn-ghost">Basescan ↗</a>
+  </div>
+
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script>
-    const CONTRACT_ADDRESS = "0xeC894Bb0Ad54e30690DcAF4C695Eca323b746e05";
-    const ABI = [
-        "function addNote(string memory _text) public",
-        "function getNotes(address _user) public view returns (tuple(string text, uint256 timestamp)[])"
-    ];
+const CONTRACT_ADDRESS = "0xeC894Bb0Ad54e30690DcAF4C695Eca323b746e05";
+const BASE_CHAIN_ID = 8453;
 
-    async function saveNote() {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-        const tx = await contract.addNote(document.getElementById('noteInput').value);
-        await tx.wait();
-        loadNotes();
+const ABI = [
+  "function addNote(string memory _text) public",
+  "function getNotes(address _user) public view returns (tuple(string text, uint256 timestamp)[])"
+];
+
+let provider, signer, contract;
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.className = 'toast ' + type;
+  t.innerHTML = (type === 'success' ? '✓' : '✕') + ' ' + msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function updateCount() {
+  const len = document.getElementById('noteInput').value.length;
+  const el = document.getElementById('charCount');
+  el.textContent = len + ' / 500';
+  el.className = 'char-count' + (len > 450 ? ' warn' : '');
+}
+
+async function connectWallet() {
+  if (!window.ethereum) {
+    showToast('MetaMask bulunamadı. Lütfen yükle.', 'error');
+    return;
+  }
+  try {
+    const btn = document.getElementById('connectBtn');
+    btn.innerHTML = '<span class="spin"></span>Bağlanıyor...';
+    btn.disabled = true;
+
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+
+    const network = await provider.getNetwork();
+    if (network.chainId !== BASE_CHAIN_ID) {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x2105' }]
+        });
+      } catch(e) {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: '0x2105',
+            chainName: 'Base',
+            rpcUrls: ['https://mainnet.base.org'],
+            nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+            blockExplorerUrls: ['https://basescan.org']
+          }]
+        });
+      }
+      provider = new ethers.providers.Web3Provider(window.ethereum);
     }
 
-    async function loadNotes() {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        document.getElementById('walletAddr').textContent = "Bağlı: " + accounts[0];
-        
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
-        const notes = await contract.getNotes(accounts[0]); // Kendi adresinle çağır
-        
-        document.getElementById('notesList').innerHTML = notes.map(n => `<div class="note-card">${n.text}</div>`).join('');
+    signer = provider.getSigner();
+    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+    const addr = await signer.getAddress();
+    const short = addr.slice(0,6) + '...' + addr.slice(-4);
+
+    document.getElementById('walletAddr').textContent = short;
+    document.getElementById('statusDot').classList.add('connected');
+    document.getElementById('networkBadge').style.display = 'inline-flex';
+    btn.textContent = 'Bağlandı';
+    btn.disabled = true;
+    btn.style.background = 'rgba(52,211,153,0.15)';
+    btn.style.color = 'var(--green)';
+
+    document.getElementById('noteInput').disabled = false;
+    document.getElementById('saveBtn').disabled = false;
+
+    showToast('Cüzdan bağlandı: ' + short);
+    loadNotes();
+
+    window.ethereum.on('accountsChanged', () => location.reload());
+    window.ethereum.on('chainChanged', () => location.reload());
+
+  } catch(e) {
+    showToast('Bağlantı iptal edildi.', 'error');
+    const btn = document.getElementById('connectBtn');
+    btn.innerHTML = 'Cüzdanı Bağla';
+    btn.disabled = false;
+  }
+}
+
+async function saveNote() {
+  const content = document.getElementById('noteInput').value.trim();
+  if (!content) { showToast('Not boş olamaz.', 'error'); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.innerHTML = '<span class="spin"></span>Onay bekleniyor...';
+  btn.disabled = true;
+
+  try {
+    const tx = await contract.addNote(content);
+    btn.innerHTML = '<span class="spin"></span>İşleniyor...';
+    await tx.wait();
+
+    document.getElementById('noteInput').value = '';
+    updateCount();
+    showToast('Not blockchain\'e kaydedildi!');
+    loadNotes();
+  } catch(e) {
+    const msg = e.code === 4001 ? 'İşlem reddedildi.' : 'Hata oluştu.';
+    showToast(msg, 'error');
+  } finally {
+    btn.innerHTML = 'Blockchain\'e Kaydet';
+    btn.disabled = false;
+  }
+}
+
+async function loadNotes() {
+  if (!contract) return;
+  try {
+    const addr = await signer.getAddress();
+    const notes = await contract.getNotes(addr);
+    const list = document.getElementById('notesList');
+    const count = document.getElementById('notesCount');
+
+    count.textContent = notes.length + ' not';
+
+    if (notes.length === 0) {
+      list.innerHTML = '<div class="empty-state"><div class="empty-icon">◈</div><div class="empty-text">Henüz not yok.<br>İlk notunu kaydet!</div></div>';
+      return;
     }
 
-    // Sayfa açıldığında notları yükle
-    window.onload = loadNotes;
+    list.innerHTML = '';
+    const reversed = [...notes].reverse();
+    reversed.forEach((note, i) => {
+      const realIndex = notes.length - i;
+      const date = new Date(note.timestamp.toNumber() * 1000);
+      const dateStr = date.toLocaleDateString('tr-TR', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+      const card = document.createElement('div');
+      card.className = 'note-card';
+      card.innerHTML = `
+        <div class="note-content">${escapeHtml(note.text)}</div>
+        <div class="note-meta">
+          <div class="note-time">${dateStr}</div>
+          <div class="note-index">#${realIndex}</div>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 </script>
 </body>
 </html>
